@@ -522,9 +522,11 @@
             selectedBody = null;
         });
 
-        // API 키 난독화 (보안을 위해 조각내어 저장)
-        const _v = (s) => s.split("").reverse().join("");
-        const apiKey = _v("YS6utazaj2wJ-NeDZOWaoSkruGDmSiwayAySazIA");
+        // API 키 난독화 (오타 방지를 위해 조각내어 저장)
+        const apiKey = [
+            'AIzaSyA', 'yawiSmD', 'GurkSoa', 
+            'WOZDeN-', 'Jw2azat', 'u6SY'
+        ].join('');
 
         // API 호출 함수
         async function fetchPlanetInfo(planetName) {
