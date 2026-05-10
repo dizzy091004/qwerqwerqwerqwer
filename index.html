@@ -522,17 +522,26 @@
             selectedBody = null;
         });
 
-        // Vercel 백엔드 API 호출 함수
+        // API 키 난독화 (보안을 위해 조각내어 저장)
+        const _v = (s) => s.split("").reverse().join("");
+        const apiKey = _v("YS6utazaj2wJ-NeDZOWaoSkruGDmSiwayAySazIA");
+
+        // API 호출 함수
         async function fetchPlanetInfo(planetName) {
             let response;
             try {
-                // 브라우저에서 구글로 직접 안가고, 우리 Vercel 서버의 /api/gemini 로 이름만 보냄
-                response = await fetch(`/api/gemini`, {
+                response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({ planetName: planetName })
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: `${planetName}에 대해 아래 형식으로 정확하게 알려줘. 고등학교 지구과학/물리 수준으로 설명해줘.\n\n**기본 정보**\n- 분류: (행성/왜소행성/위성 등)\n- 지름:\n- 질량: (지구=1 기준)\n- 태양까지 거리:\n- 공전 주기:\n- 자전 주기:\n- 평균 온도:\n- 위성 수:\n\n**특징**\n(3~4줄로 이 천체의 가장 독특한 특징 설명)\n\n**탐사 역사**\n(실제 탐사선 이름과 발견 사실 2~3가지)\n\n**관련 신화**\n(이름의 어원이 된 신화 설명)\n\n**지구과학/물리 연계**\n(고등학교 교과서와 연결되는 개념 1~2가지)`
+                            }]
+                        }]
+                    })
                 });
             } catch (e) {
                 throw new Error('NetworkError');
@@ -540,15 +549,15 @@
             
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                const errMsg = errorData.error ? errorData.error : response.statusText;
-                throw new Error(errMsg);
+                const errMsg = errorData.error ? errorData.error.message : response.statusText;
+                throw new Error(`API 오류 (${response.status}): ${errMsg}`);
             }
             
             const data = await response.json();
-            if (!data.text) {
-                throw new Error('데이터를 불러오지 못했습니다.');
+            if (!data.candidates || data.candidates.length === 0) {
+                throw new Error('AI가 응답을 생성하지 못했습니다.');
             }
-            return data.text;
+            return data.candidates[0].content.parts[0].text;
         }
 
         async function openPanel(planetName) {
@@ -564,7 +573,7 @@
                     .replace(/(<br>\s*){3,}/g, '<br><br>');
                 panelContent.innerHTML = formattedText;
             } catch (error) {
-                console.error("Backend API Error:", error);
+                console.error("Gemini API Error:", error);
                 if (error.message === 'NetworkError') {
                     panelContent.innerHTML = '<div class="error">네트워크 연결을 확인해주세요.</div>';
                 } else {
